@@ -1,0 +1,91 @@
+## --- Load data -------------------------------------------------------------
+df <- read.csv("C:/Users/Ivan/Desktop/Jacyk.R/plotR.csv", stringsAsFactors = FALSE)
+
+## Inspect
+head(df)
+str(df)
+summary(df)
+
+## We'll work with the numeric column explicitly:
+x <- df$LO
+
+## --- Descriptive statistics ------------------------------------------------
+# mean(var, ...) failed before because `var` is a function name in R.
+# Don't create objects called `var`, `mean`, `sd`, etc.
+mean_x   <- mean(x, na.rm = TRUE)
+median_x <- median(x, na.rm = TRUE)
+sd_x     <- sd(x, na.rm = TRUE)
+var_x    <- var(x, na.rm = TRUE)
+rng_x    <- range(x, na.rm = TRUE)
+iqr_x    <- IQR(x, na.rm = TRUE)
+
+mean_x; median_x; sd_x; var_x; rng_x; iqr_x
+
+# Mode (statistical, not R's internal storage mode)
+mode_func <- function(v) {
+  v <- v[!is.na(v)]
+  uniq <- unique(v)
+  uniq[which.max(tabulate(match(v, uniq)))]
+}
+mode_x <- mode_func(x)
+mode_x
+
+## --- Plots -----------------------------------------------------------------
+# Histogram
+hist(x,
+     breaks = 20,
+     col = "lightblue",
+     main = "Histogram of LO",
+     xlab = "LO", ylab = "Frequency", border = "black")
+
+# Boxplot (basic)
+boxplot(x, main = "Boxplot of LO", col = "lightgreen", horizontal = TRUE)
+
+# Density plot
+plot(density(x, na.rm = TRUE),
+     main = "Density Plot of LO",
+     xlab = "LO", lwd = 2)
+
+# Q-Q plot
+qqnorm(x, main = "Q-Q Plot of LO")
+qqline(x, col = "red", lwd = 2)
+
+## --- 3-sigma coverage ------------------------------------------------------
+mu  <- mean_x
+sig <- sd_x
+lower_3s <- mu - 3*sig
+upper_3s <- mu + 3*sig
+
+# Use finite values only to avoid NA issues in the denominator
+x_ok <- x[is.finite(x)]
+within_3sigma <- mean(x_ok >= lower_3s & x_ok <= upper_3s) * 100
+within_3sigma  # percent
+
+## --- Normality test --------------------------------------------------------
+# Shapiro-Wilk works for n between 3 and 5000; remove NAs first.
+x_shapiro <- x[!is.na(x)]
+shapiro.test(x_shapiro)
+
+## --- IQR outliers and annotated boxplot -----------------------------------
+Q1 <- quantile(x, 0.25, na.rm = TRUE)
+Q3 <- quantile(x, 0.75, na.rm = TRUE)
+IQR_value <- Q3 - Q1
+lb <- Q1 - 1.5*IQR_value
+ub <- Q3 + 1.5*IQR_value
+
+outliers <- x[x < lb | x > ub]
+outliers
+
+# Draw boxplot and then add outlier points and labels
+bp <- boxplot(x,
+              main = "Boxplot of LO (Outliers Highlighted)",
+              col = "orange",
+              horizontal = TRUE)
+
+# If there are outliers, add them as points and text
+if (length(outliers) > 0) {
+  # Horizontal boxplot => x position varies, y is fixed at 1
+  points(outliers, rep(1, length(outliers)), pch = 19, col = "red")
+  text(outliers, rep(1, length(outliers)),
+       labels = outliers, pos = 3, col = "red", cex = 0.9)
+}
